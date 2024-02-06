@@ -1,30 +1,11 @@
 import streamlit as st
 import cv2
-import pandas as pd
 import numpy as np
-from datetime import datetime
+import pandas as pd
 import requests
 import mediapipe as mp
+from datetime import datetime
 import base64
-
-hide_github_link_style = """
-    <style>
-    #MainMenu {visibility: hidden;}
-    footer {visiblity: hidden;}
-    header {visibility: hidden;}
-        .viewerBadge_container__1QSob {
-            display: none !important;
-        }
-    </style>
-"""
-st.markdown(hide_github_link_style, unsafe_allow_html=True)
-hide_streamlit_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            footer {visibility: hidden;}
-            </style>
-            """
-st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
 
 # Annotate the function with @st.cache(allow_output_mutation=True)
 @st.cache(allow_output_mutation=True)
@@ -34,10 +15,6 @@ def create_history_dataframe():
 # Create a set to store unique user IDs
 unique_user_ids = set()
 
-# Create folder for saving uploaded images
-UPLOADS_FOLDER = "uploads"
-st.set_option('deprecation.showfileUploaderEncoding', False)
-
 # Initialize Mediapipe Face Detection
 mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
@@ -45,11 +22,6 @@ face_detection = mp_face_detection.FaceDetection(min_detection_confidence=0.3)
 
 # Function to detect faces using Mediapipe and update history
 def detect_faces_and_update_history(image, user_id, user_name, user_location, history_df):
-    # Check if the user ID is already logged in
-    if user_id in unique_user_ids:
-        st.warning(f"User with ID {user_id} already logged in.")
-        return
-
     # Convert the image to RGB
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
@@ -95,10 +67,6 @@ def get_user_location():
         print(f"Error getting location: {e}")
         return None
 
-# Function to display a warning pop-up if no face is detected
-def display_no_face_warning():
-    st.warning("No face detected in the image or camera feed.")
-
 # Streamlit app
 def main():
     st.title("Face Detection and History")
@@ -124,6 +92,7 @@ def main():
         else:
             uploaded_file = st.file_uploader("Choose a file", type=["jpg", "jpeg", "png"])
             if uploaded_file is not None:
+                # Convert the uploaded image to a NumPy array
                 image = cv2.imdecode(np.frombuffer(uploaded_file.read(), np.uint8), -1)
                 user_location = get_user_location()
                 detect_faces_and_update_history(image, user_id, user_name, user_location, history_df)
@@ -136,16 +105,19 @@ def main():
                     st.success("Data saved to history.")
 
     elif section == "Detect Faces":
-        # Open camera and start detection
-        cap = cv2.VideoCapture(0)
-        checkbox_idx = 0  # Initialize index for unique checkbox keys
-        while st.sidebar.checkbox("Detect Faces", key=f"checkbox_{checkbox_idx}"):
-            ret, frame = cap.read()
-            user_location = get_user_location()
-            detect_faces_and_update_history(frame, user_id, user_name, user_location, history_df)
-            checkbox_idx += 1  # Increment index for the next checkbox
+        # Open camera and start detection using st.camera_input
+        img_file_buffer = st.camera_input("Take a picture")
 
-        cap.release()
+        if img_file_buffer is not None:
+            # Get the bytes data from the image file buffer
+            bytes_data = img_file_buffer.getvalue()
+
+            # Convert image from opened file to np.array using OpenCV
+            image_array = cv2.imdecode(np.frombuffer(bytes_data, np.uint8), cv2.IMREAD_COLOR)
+
+            # Perform face detection and update history
+            user_location = get_user_location()
+            detect_faces_and_update_history(image_array, user_id, user_name, user_location, history_df)
 
     elif section == "History":
         # Display history DataFrame
