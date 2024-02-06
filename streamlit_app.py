@@ -6,7 +6,24 @@ import requests
 import mediapipe as mp
 from datetime import datetime
 import base64
-
+hide_github_link_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visiblity: hidden;}
+    header {visibility: hidden;}
+        .viewerBadge_container__1QSob {
+            display: none !important;
+        }
+    </style>
+"""
+st.markdown(hide_github_link_style, unsafe_allow_html=True)
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True) 
 # Annotate the function with @st.cache(allow_output_mutation=True)
 @st.cache(allow_output_mutation=True)
 def create_history_dataframe():
